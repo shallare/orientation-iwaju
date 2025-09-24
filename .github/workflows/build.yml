@@ -1,34 +1,53 @@
 name: Build Tauri App
 
+# Déclenchement sur push sur main ou nouvelle release
 on:
   push:
     branches:
       - main
+  release:
+    types: [created]
 
 jobs:
   build:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v3
+      # 1️⃣ Récupérer le code du dépôt
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # 2️⃣ Installer Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'  # ou '18' si ton projet le demande
 
-      - name: Install Rust
+      # 3️⃣ Installer Rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
+      # 4️⃣ Installer les dépendances Node.js
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build app
+      # 5️⃣ Installer Tauri CLI
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      # 6️⃣ Build Tauri App
+      - name: Build Tauri app
         run: npm run tauri build
+
+      # 7️⃣ Upload artifacts
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-build
+          path: src-tauri/target/release/bundle/**/*
